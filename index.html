@@ -106,19 +106,27 @@ function generaFormatiData(){
     const mese2 = String(mese).padStart(2,"0");
 
     const giorniSettimana = [
-        "domenica",
-        "lunedì",
-        "lunedi",
-        "martedì",
-        "martedi",
-        "mercoledì",
-        "mercoledi",
-        "giovedì",
-        "giovedi",
-        "venerdì",
-        "venerdi",
-        "sabato"
-    ];
+    "domenica",
+    "lunedì",
+    "martedì",
+    "mercoledì",
+    "giovedì",
+    "venerdì",
+    "sabato"
+];
+
+const nomeGiorno = giorniSettimana[oggi.getDay()];
+
+return [
+    `${giorno}/${mese}`,
+    `${giorno2}/${mese2}`,
+    `${giorno}/${mese}/${anno}`,
+    `${giorno2}/${mese2}/${anno}`,
+    `${giorno}-${mese}`,
+    `${giorno2}-${mese2}`,
+    nomeGiorno,
+    nomeGiorno.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+].map(x => x.toLowerCase());
 
     const nomeGiorno = giorniSettimana[oggi.getDay()];
 
