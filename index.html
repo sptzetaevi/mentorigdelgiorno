@@ -3,283 +3,158 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Tabella del giorno</title>
-
+<title>Attività di oggi</title>
 <style>
-
-body{
-    font-family: Arial, sans-serif;
-    background:#f2f2f2;
-    margin:0;
-    padding:20px;
-}
-
-h1{
-    text-align:center;
-    margin-bottom:10px;
-}
-
-.info{
-    text-align:center;
-    margin-bottom:20px;
-    color:#555;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    background:white;
-    overflow:hidden;
-    border-radius:10px;
-}
-
-th{
-    background:#222;
-    color:white;
-    padding:10px;
-    position:sticky;
-    top:0;
-}
-
-td{
-    padding:10px;
-    border-bottom:1px solid #ddd;
-    vertical-align:top;
-}
-
-tr:nth-child(even){
-    background:#fafafa;
-}
-
-.nessun-risultato{
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    text-align:center;
-    font-size:20px;
-}
-
-.loader{
-    text-align:center;
-    padding:40px;
-    font-size:20px;
-}
-
+body{font-family:Arial,sans-serif;background:#f2f2f2;padding:20px}
+h1{text-align:center}
+.info{background:white;padding:15px;border-radius:10px;margin-bottom:15px}
+table{width:100%;border-collapse:collapse;background:white}
+th,td{border:1px solid #ccc;padding:8px;text-align:left}
+th{background:#222;color:white}
+.msg{background:white;padding:20px;border-radius:10px;text-align:center}
 </style>
 </head>
 <body>
 
 <h1>Attività di oggi</h1>
-
-<div class="info" id="infoData"></div>
-
-<div id="contenuto">
-    <div class="loader">Caricamento dati...</div>
-</div>
+<div class="info" id="info"></div>
+<div id="contenuto">Caricamento...</div>
 
 <script>
-
-/*
-===========================================
-INSERISCI QUI IL LINK CSV PUBBLICO
-===========================================
-*/
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRrPaPZ4es97P63Q5Mvt0Y2NfpNjYVIomiMtDQEcFdQj5mq9VBqf3wVxJP4IORcoNhzzTZF2NqjCpk/pub?output=csv";
 
-/*
-===========================================
-COLONNA L = 11
-===========================================
-*/
+// colonna E = 4
 const COLONNA_CONTROLLO = 4;
 
-function generaFormatiData(){
+function pulisciTesto(testo){
+  return String(testo || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
 
-    const oggi = new Date();
+function getOggi(){
+  const oggi = new Date();
 
-    const dataItalia = new Intl.DateTimeFormat("it-IT", {
-        timeZone: "Europe/Rome",
-        weekday: "long",
-        day: "numeric",
-        month: "numeric",
-        year: "numeric"
-    }).formatToParts(oggi);
+  const giorni = [
+    "domenica",
+    "lunedi",
+    "martedi",
+    "mercoledi",
+    "giovedi",
+    "venerdi",
+    "sabato"
+  ];
 
-    const nomeGiorno = dataItalia.find(p
+  const nomeGiorno = giorni[oggi.getDay()];
 
-const nomeGiorno = giorniSettimana[oggi.getDay()];
+  const giorno = oggi.getDate();
+  const mese = oggi.getMonth() + 1;
+  const anno = oggi.getFullYear();
 
-return [
+  const giorno2 = String(giorno).padStart(2,"0");
+  const mese2 = String(mese).padStart(2,"0");
+
+  return [
+    nomeGiorno,
     `${giorno}/${mese}`,
     `${giorno2}/${mese2}`,
     `${giorno}/${mese}/${anno}`,
-    `${giorno2}/${mese2}/${anno}`,
-    `${giorno}-${mese}`,
-    `${giorno2}-${mese2}`,
-    nomeGiorno,
-    nomeGiorno.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-].map(x => x.toLowerCase());
-
-    const nomeGiorno = giorniSettimana[oggi.getDay()];
-
-    return [
-        `${giorno}/${mese}`,
-        `${giorno2}/${mese2}`,
-        `${giorno}/${mese}/${anno}`,
-        `${giorno2}/${mese2}/${anno}`,
-        `${giorno}-${mese}`,
-        `${giorno2}-${mese2}`,
-        nomeGiorno
-    ].map(x => x.toLowerCase());
-
+    `${giorno2}/${mese2}/${anno}`
+  ].map(pulisciTesto);
 }
 
-function parseCSV(str){
+function parseCSV(text){
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quote = false;
 
-    const rows = [];
-    let row = [];
-    let current = "";
-    let insideQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    const n = text[i+1];
 
-    for(let i=0;i<str.length;i++){
-
-        const char = str[i];
-        const next = str[i+1];
-
-        if(char === '"'){
-
-            if(insideQuotes && next === '"'){
-                current += '"';
-                i++;
-            }else{
-                insideQuotes = !insideQuotes;
-            }
-
-        }else if(char === "," && !insideQuotes){
-
-            row.push(current);
-            current = "";
-
-        }else if((char === "\n" || char === "\r") && !insideQuotes){
-
-            if(current || row.length){
-
-                row.push(current);
-                rows.push(row);
-
-                row = [];
-                current = "";
-            }
-
-        }else{
-
-            current += char;
-
-        }
-
-    }
-
-    if(current || row.length){
-        row.push(current);
+    if(c === '"' && quote && n === '"'){
+      cell += '"';
+      i++;
+    } else if(c === '"'){
+      quote = !quote;
+    } else if(c === "," && !quote){
+      row.push(cell);
+      cell = "";
+    } else if((c === "\n" || c === "\r") && !quote){
+      if(cell || row.length){
+        row.push(cell);
         rows.push(row);
+        row = [];
+        cell = "";
+      }
+    } else {
+      cell += c;
     }
+  }
 
-    return rows;
+  if(cell || row.length){
+    row.push(cell);
+    rows.push(row);
+  }
 
+  return rows;
 }
 
 function creaTabella(headers, righe){
+  let html = "<table><thead><tr>";
 
-    let html = "<table>";
+  headers.forEach(h => html += `<th>${h}</th>`);
+  html += "</tr></thead><tbody>";
 
-    html += "<thead><tr>";
-
-    headers.forEach(h => {
-        html += `<th>${h}</th>`;
+  righe.forEach(riga => {
+    html += "<tr>";
+    headers.forEach((_, i) => {
+      html += `<td>${riga[i] || ""}</td>`;
     });
+    html += "</tr>";
+  });
 
-    html += "</tr></thead>";
-
-    html += "<tbody>";
-
-    righe.forEach(riga => {
-
-        html += "<tr>";
-
-        headers.forEach((_,i)=>{
-
-            html += `<td>${riga[i] || ""}</td>`;
-
-        });
-
-        html += "</tr>";
-
-    });
-
-    html += "</tbody></table>";
-
-    return html;
-
+  html += "</tbody></table>";
+  return html;
 }
 
-async function caricaDati(){
+async function carica(){
+  const oggi = getOggi();
 
-    try{
+  document.getElementById("info").innerHTML =
+    "Sto cercando nella colonna E: <strong>" + oggi.join(" / ") + "</strong>";
 
-        const risposta = await fetch(CSV_URL);
-        const testo = await risposta.text();
+  try{
+    const res = await fetch(CSV_URL);
+    const text = await res.text();
+    const dati = parseCSV(text);
 
-        const dati = parseCSV(testo);
+    const headers = dati[0];
+    const righe = dati.slice(1);
 
-        const headers = dati[0];
-        const righe = dati.slice(1);
+    const filtrate = righe.filter(riga => {
+      const cella = pulisciTesto(riga[COLONNA_CONTROLLO]);
+      return oggi.some(valore => cella.includes(valore));
+    });
 
-        const formatiOggi = generaFormatiData();
-
-        document.getElementById("infoData").innerHTML =
-            "Filtro automatico sulla colonna L";
-
-        const righeFiltrate = righe.filter(riga => {
-
-            const valore = (riga[COLONNA_CONTROLLO] || "").toLowerCase();
-
-            return formatiOggi.some(f => valore.includes(f));
-
-        });
-
-        const contenuto = document.getElementById("contenuto");
-
-        if(righeFiltrate.length === 0){
-
-            contenuto.innerHTML = `
-                <div class="nessun-risultato">
-                    Nessuna attività trovata per oggi
-                </div>
-            `;
-
-        }else{
-
-            contenuto.innerHTML = creaTabella(headers, righeFiltrate);
-
-        }
-
-    }catch(errore){
-
-        document.getElementById("contenuto").innerHTML = `
-            <div class="nessun-risultato">
-                Errore nel caricamento del foglio Google
-            </div>
-        `;
-
-        console.error(errore);
-
+    if(filtrate.length === 0){
+      document.getElementById("contenuto").innerHTML =
+        `<div class="msg">Nessuna riga trovata per oggi.</div>`;
+    } else {
+      document.getElementById("contenuto").innerHTML =
+        creaTabella(headers, filtrate);
     }
 
+  } catch(e){
+    document.getElementById("contenuto").innerHTML =
+      `<div class="msg">Errore nel caricamento del foglio.</div>`;
+  }
 }
 
-caricaDati();
-
+carica();
 </script>
 
 </body>
