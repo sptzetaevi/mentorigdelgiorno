@@ -98,22 +98,15 @@ function generaFormatiData(){
 
     const oggi = new Date();
 
-    const giorno = oggi.getDate();
-    const mese = oggi.getMonth() + 1;
-    const anno = oggi.getFullYear();
+    const dataItalia = new Intl.DateTimeFormat("it-IT", {
+        timeZone: "Europe/Rome",
+        weekday: "long",
+        day: "numeric",
+        month: "numeric",
+        year: "numeric"
+    }).formatToParts(oggi);
 
-    const giorno2 = String(giorno).padStart(2,"0");
-    const mese2 = String(mese).padStart(2,"0");
-
-    const giorniSettimana = [
-    "domenica",
-    "lunedì",
-    "martedì",
-    "mercoledì",
-    "giovedì",
-    "venerdì",
-    "sabato"
-];
+    const nomeGiorno = dataItalia.find(p
 
 const nomeGiorno = giorniSettimana[oggi.getDay()];
 
