@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Tabella del giorno</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background:#f2f2f2;
+    margin:0;
+    padding:20px;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:10px;
+}
+
+.info{
+    text-align:center;
+    margin-bottom:20px;
+    color:#555;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    overflow:hidden;
+    border-radius:10px;
+}
+
+th{
+    background:#222;
+    color:white;
+    padding:10px;
+    position:sticky;
+    top:0;
+}
+
+td{
+    padding:10px;
+    border-bottom:1px solid #ddd;
+    vertical-align:top;
+}
+
+tr:nth-child(even){
+    background:#fafafa;
+}
+
+.nessun-risultato{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    font-size:20px;
+}
+
+.loader{
+    text-align:center;
+    padding:40px;
+    font-size:20px;
+}
+
+</style>
+</head>
+<body>
+
+<h1>Attività di oggi</h1>
+
+<div class="info" id="infoData"></div>
+
+<div id="contenuto">
+    <div class="loader">Caricamento dati...</div>
+</div>
+
+<script>
+
+/*
+===========================================
+INSERISCI QUI IL LINK CSV PUBBLICO
+===========================================
+*/
+const CSV_URL = "METTI_QUI_IL_LINK_CSV";
+
+/*
+===========================================
+COLONNA L = 11
+===========================================
+*/
+const COLONNA_CONTROLLO = 11;
+
+function generaFormatiData(){
+
+    const oggi = new Date();
+
+    const giorno = oggi.getDate();
+    const mese = oggi.getMonth() + 1;
+    const anno = oggi.getFullYear();
+
+    const giorno2 = String(giorno).padStart(2,"0");
+    const mese2 = String(mese).padStart(2,"0");
+
+    const giorniSettimana = [
+        "domenica",
+        "lunedì",
+        "lunedi",
+        "martedì",
+        "martedi",
+        "mercoledì",
+        "mercoledi",
+        "giovedì",
+        "giovedi",
+        "venerdì",
+        "venerdi",
+        "sabato"
+    ];
+
+    const nomeGiorno = giorniSettimana[oggi.getDay()];
+
+    return [
+        `${giorno}/${mese}`,
+        `${giorno2}/${mese2}`,
+        `${giorno}/${mese}/${anno}`,
+        `${giorno2}/${mese2}/${anno}`,
+        `${giorno}-${mese}`,
+        `${giorno2}-${mese2}`,
+        nomeGiorno
+    ].map(x => x.toLowerCase());
+
+}
+
+function parseCSV(str){
+
+    const rows = [];
+    let row = [];
+    let current = "";
+    let insideQuotes = false;
+
+    for(let i=0;i<str.length;i++){
+
+        const char = str[i];
+        const next = str[i+1];
+
+        if(char === '"'){
+
+            if(insideQuotes && next === '"'){
+                current += '"';
+                i++;
+            }else{
+                insideQuotes = !insideQuotes;
+            }
+
+        }else if(char === "," && !insideQuotes){
+
+            row.push(current);
+            current = "";
+
+        }else if((char === "\n" || char === "\r") && !insideQuotes){
+
+            if(current || row.length){
+
+                row.push(current);
+                rows.push(row);
+
+                row = [];
+                current = "";
+            }
+
+        }else{
+
+            current += char;
+
+        }
+
+    }
+
+    if(current || row.length){
+        row.push(current);
+        rows.push(row);
+    }
+
+    return rows;
+
+}
+
+function creaTabella(headers, righe){
+
+    let html = "<table>";
+
+    html += "<thead><tr>";
+
+    headers.forEach(h => {
+        html += `<th>${h}</th>`;
+    });
+
+    html += "</tr></thead>";
+
+    html += "<tbody>";
+
+    righe.forEach(riga => {
+
+        html += "<tr>";
+
+        headers.forEach((_,i)=>{
+
+            html += `<td>${riga[i] || ""}</td>`;
+
+        });
+
+        html += "</tr>";
+
+    });
+
+    html += "</tbody></table>";
+
+    return html;
+
+}
+
+async function caricaDati(){
+
+    try{
+
+        const risposta = await fetch(CSV_URL);
+        const testo = await risposta.text();
+
+        const dati = parseCSV(testo);
+
+        const headers = dati[0];
+        const righe = dati.slice(1);
+
+        const formatiOggi = generaFormatiData();
+
+        document.getElementById("infoData").innerHTML =
+            "Filtro automatico sulla colonna L";
+
+        const righeFiltrate = righe.filter(riga => {
+
+            const valore = (riga[COLONNA_CONTROLLO] || "").toLowerCase();
+
+            return formatiOggi.some(f => valore.includes(f));
+
+        });
+
+        const contenuto = document.getElementById("contenuto");
+
+        if(righeFiltrate.length === 0){
+
+            contenuto.innerHTML = `
+                <div class="nessun-risultato">
+                    Nessuna attività trovata per oggi
+                </div>
+            `;
+
+        }else{
+
+            contenuto.innerHTML = creaTabella(headers, righeFiltrate);
+
+        }
+
+    }catch(errore){
+
+        document.getElementById("contenuto").innerHTML = `
+            <div class="nessun-risultato">
+                Errore nel caricamento del foglio Google
+            </div>
+        `;
+
+        console.error(errore);
+
+    }
+
+}
+
+caricaDati();
+
+</script>
+
+</body>
+</html>
