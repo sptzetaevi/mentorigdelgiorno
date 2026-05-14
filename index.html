@@ -128,7 +128,7 @@ async function carica(){
     "Sto cercando nella colonna E: <strong>" + oggi.join(" / ") + "</strong>";
 
   try{
-    const res = await fetch(CSV_URL);
+    const res = await fetch(CSV_URL + "&cachebuster=" + new Date().getTime());;
     const text = await res.text();
     const dati = parseCSV(text);
 
