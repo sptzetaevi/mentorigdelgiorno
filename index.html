@@ -7,47 +7,40 @@
 <title>Attività di oggi</title>
 
 <style>
-
-*{
-  box-sizing:border-box;
-}
-
 body{
-  margin:0;
   font-family:Arial,sans-serif;
   background:#f2f2f2;
-  color:#222;
-}
-
-.topbar{
-  position:sticky;
-  top:0;
-  z-index:1000;
-  background:white;
   padding:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.12);
+  margin:0;
 }
 
 h1{
-  margin:0 0 10px 0;
   text-align:center;
   font-size:24px;
+  margin:12px 0;
 }
 
-.buttons{
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  flex-wrap:wrap;
+.info{
+  background:white;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:12px;
+  font-size:15px;
+}
+
+.comandi{
+  text-align:center;
+  margin-bottom:12px;
 }
 
 button{
-  border:none;
   background:#222;
   color:white;
-  padding:12px 18px;
-  border-radius:12px;
+  border:none;
+  padding:10px 16px;
+  border-radius:8px;
   font-size:16px;
+  margin:4px;
   cursor:pointer;
 }
 
@@ -55,84 +48,83 @@ button:hover{
   opacity:0.9;
 }
 
-.info{
-  margin:15px;
-  background:white;
-  padding:15px;
-  border-radius:14px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
-}
-
 #contenuto{
-  padding:10px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
 }
 
-.card{
+table{
+  width:100%;
+  min-width:700px;
+  border-collapse:collapse;
   background:white;
-  border-radius:16px;
-  padding:14px;
-  margin-bottom:14px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.10);
 }
 
-.riga{
-  margin-bottom:10px;
-  padding-bottom:8px;
-  border-bottom:1px solid #eee;
+th,td{
+  border:1px solid #ccc;
+  padding:8px;
+  text-align:left;
+  vertical-align:top;
+  font-size:14px;
 }
 
-.riga:last-child{
-  border-bottom:none;
+th{
+  background:#222;
+  color:white;
+  position:sticky;
+  top:0;
+  z-index:2;
 }
 
-.label{
-  font-weight:bold;
-  margin-bottom:3px;
-  color:#555;
-}
-
-.valore{
-  font-size:16px;
+tr:nth-child(even){
+  background:#fafafa;
 }
 
 .msg{
   background:white;
   padding:20px;
-  border-radius:16px;
+  border-radius:10px;
   text-align:center;
 }
 
 @media print{
-
-  .topbar{
+  .comandi, .info{
     display:none;
   }
 
   body{
     background:white;
+    padding:0;
   }
 
-  .card{
-    box-shadow:none;
-    border:1px solid #ccc;
-    page-break-inside:avoid;
+  #contenuto{
+    overflow:visible;
   }
 
+  table{
+    min-width:auto;
+    width:100%;
+  }
+
+  th{
+    position:static;
+  }
+
+  th,td{
+    padding:5px;
+    font-size:11px;
+  }
 }
-
 </style>
 </head>
+
 <body>
 
-<div class="topbar">
+<h1>Attività di oggi</h1>
 
-  <h1>Attività di oggi</h1>
-
-  <div class="buttons">
-    <button onclick="window.print()">🖨️ Stampa</button>
-    <button onclick="location.reload()">🔄 Aggiorna</button>
-  </div>
-
+<div class="comandi">
+  <button onclick="window.print()">🖨️ Stampa</button>
+  <button onclick="location.reload()">🔄 Aggiorna</button>
 </div>
 
 <div class="info" id="info"></div>
@@ -142,10 +134,9 @@ button:hover{
 </div>
 
 <script>
-
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRrPaPZ4es97P63Q5Mvt0Y2NfpNjYVIomiMtDQEcFdQj5mq9VBqf3wVxJP4IORcoNhzzTZF2NqjCpk/pub?output=csv";
 
-// COLONNA E
+// colonna E = 4
 const COLONNA_CONTROLLO = 4;
 
 function pulisciTesto(testo){
@@ -157,7 +148,6 @@ function pulisciTesto(testo){
 }
 
 function getOggi(){
-
   const oggi = new Date();
 
   const giorni = [
@@ -186,48 +176,36 @@ function getOggi(){
     `${giorno}/${mese}/${anno}`,
     `${giorno2}/${mese2}/${anno}`
   ].map(pulisciTesto);
-
 }
 
 function parseCSV(text){
-
   const rows = [];
   let row = [];
   let cell = "";
   let quote = false;
 
   for(let i=0;i<text.length;i++){
-
     const c = text[i];
     const n = text[i+1];
 
     if(c === '"' && quote && n === '"'){
       cell += '"';
       i++;
-
     } else if(c === '"'){
       quote = !quote;
-
     } else if(c === "," && !quote){
       row.push(cell);
       cell = "";
-
     } else if((c === "\n" || c === "\r") && !quote){
-
       if(cell || row.length){
         row.push(cell);
         rows.push(row);
-
         row = [];
         cell = "";
       }
-
     } else {
-
       cell += c;
-
     }
-
   }
 
   if(cell || row.length){
@@ -236,44 +214,27 @@ function parseCSV(text){
   }
 
   return rows;
-
 }
 
-function creaCards(headers, righe){
+function creaTabella(headers, righe){
+  let html = "<table><thead><tr>";
 
-  let html = "";
+  headers.forEach(h => html += `<th>${h}</th>`);
+  html += "</tr></thead><tbody>";
 
   righe.forEach(riga => {
-
-    html += `<div class="card">`;
-
-    headers.forEach((header, i) => {
-
-      const valore = riga[i];
-
-      if(valore && valore.trim() !== ""){
-
-        html += `
-          <div class="riga">
-            <div class="label">${header}</div>
-            <div class="valore">${valore}</div>
-          </div>
-        `;
-
-      }
-
+    html += "<tr>";
+    headers.forEach((_, i) => {
+      html += `<td>${riga[i] || ""}</td>`;
     });
-
-    html += `</div>`;
-
+    html += "</tr>";
   });
 
+  html += "</tbody></table>";
   return html;
-
 }
 
 async function carica(){
-
   const oggi = getOggi();
 
   document.getElementById("info").innerHTML =
@@ -282,57 +243,35 @@ async function carica(){
     "</strong>";
 
   try{
-
-    const res = await fetch(
-      CSV_URL + "&cachebuster=" + new Date().getTime()
-    );
-
+    const res = await fetch(CSV_URL + "&cachebuster=" + new Date().getTime());
     const text = await res.text();
-
     const dati = parseCSV(text);
 
     const headers = dati[0];
     const righe = dati.slice(1);
 
     const filtrate = righe.filter(riga => {
-
       const cella = pulisciTesto(riga[COLONNA_CONTROLLO]);
-
-      return oggi.some(valore =>
-        cella.includes(valore)
-      );
-
+      return oggi.some(valore => cella.includes(valore));
     });
 
     if(filtrate.length === 0){
-
       document.getElementById("contenuto").innerHTML =
-        `<div class="msg">
-          Nessuna attività trovata per oggi.
-        </div>`;
-
+        `<div class="msg">Nessuna attività trovata per oggi.</div>`;
     } else {
-
       document.getElementById("contenuto").innerHTML =
-        creaCards(headers, filtrate);
-
+        creaTabella(headers, filtrate);
     }
 
   } catch(e){
-
     document.getElementById("contenuto").innerHTML =
-      `<div class="msg">
-        Errore nel caricamento del foglio Google.
-      </div>`;
+      `<div class="msg">Errore nel caricamento del foglio Google.</div>`;
 
     console.error(e);
-
   }
-
 }
 
 carica();
-
 </script>
 
 </body>
