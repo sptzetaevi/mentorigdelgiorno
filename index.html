@@ -3,27 +3,149 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Attività di oggi</title>
+
 <style>
-body{font-family:Arial,sans-serif;background:#f2f2f2;padding:20px}
-h1{text-align:center}
-.info{background:white;padding:15px;border-radius:10px;margin-bottom:15px}
-table{width:100%;border-collapse:collapse;background:white}
-th,td{border:1px solid #ccc;padding:8px;text-align:left}
-th{background:#222;color:white}
-.msg{background:white;padding:20px;border-radius:10px;text-align:center}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f2f2f2;
+  color:#222;
+}
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  background:white;
+  padding:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.12);
+}
+
+h1{
+  margin:0 0 10px 0;
+  text-align:center;
+  font-size:24px;
+}
+
+.buttons{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+button{
+  border:none;
+  background:#222;
+  color:white;
+  padding:12px 18px;
+  border-radius:12px;
+  font-size:16px;
+  cursor:pointer;
+}
+
+button:hover{
+  opacity:0.9;
+}
+
+.info{
+  margin:15px;
+  background:white;
+  padding:15px;
+  border-radius:14px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
+#contenuto{
+  padding:10px;
+}
+
+.card{
+  background:white;
+  border-radius:16px;
+  padding:14px;
+  margin-bottom:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.10);
+}
+
+.riga{
+  margin-bottom:10px;
+  padding-bottom:8px;
+  border-bottom:1px solid #eee;
+}
+
+.riga:last-child{
+  border-bottom:none;
+}
+
+.label{
+  font-weight:bold;
+  margin-bottom:3px;
+  color:#555;
+}
+
+.valore{
+  font-size:16px;
+}
+
+.msg{
+  background:white;
+  padding:20px;
+  border-radius:16px;
+  text-align:center;
+}
+
+@media print{
+
+  .topbar{
+    display:none;
+  }
+
+  body{
+    background:white;
+  }
+
+  .card{
+    box-shadow:none;
+    border:1px solid #ccc;
+    page-break-inside:avoid;
+  }
+
+}
+
 </style>
 </head>
 <body>
 
-<h1>Attività di oggi</h1>
+<div class="topbar">
+
+  <h1>Attività di oggi</h1>
+
+  <div class="buttons">
+    <button onclick="window.print()">🖨️ Stampa</button>
+    <button onclick="location.reload()">🔄 Aggiorna</button>
+  </div>
+
+</div>
+
 <div class="info" id="info"></div>
-<div id="contenuto">Caricamento...</div>
+
+<div id="contenuto">
+  <div class="msg">Caricamento...</div>
+</div>
 
 <script>
+
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRrPaPZ4es97P63Q5Mvt0Y2NfpNjYVIomiMtDQEcFdQj5mq9VBqf3wVxJP4IORcoNhzzTZF2NqjCpk/pub?output=csv";
 
-// colonna E = 4
+// COLONNA E
 const COLONNA_CONTROLLO = 4;
 
 function pulisciTesto(testo){
@@ -35,6 +157,7 @@ function pulisciTesto(testo){
 }
 
 function getOggi(){
+
   const oggi = new Date();
 
   const giorni = [
@@ -63,36 +186,48 @@ function getOggi(){
     `${giorno}/${mese}/${anno}`,
     `${giorno2}/${mese2}/${anno}`
   ].map(pulisciTesto);
+
 }
 
 function parseCSV(text){
+
   const rows = [];
   let row = [];
   let cell = "";
   let quote = false;
 
   for(let i=0;i<text.length;i++){
+
     const c = text[i];
     const n = text[i+1];
 
     if(c === '"' && quote && n === '"'){
       cell += '"';
       i++;
+
     } else if(c === '"'){
       quote = !quote;
+
     } else if(c === "," && !quote){
       row.push(cell);
       cell = "";
+
     } else if((c === "\n" || c === "\r") && !quote){
+
       if(cell || row.length){
         row.push(cell);
         rows.push(row);
+
         row = [];
         cell = "";
       }
+
     } else {
+
       cell += c;
+
     }
+
   }
 
   if(cell || row.length){
@@ -101,60 +236,103 @@ function parseCSV(text){
   }
 
   return rows;
+
 }
 
-function creaTabella(headers, righe){
-  let html = "<table><thead><tr>";
+function creaCards(headers, righe){
 
-  headers.forEach(h => html += `<th>${h}</th>`);
-  html += "</tr></thead><tbody>";
+  let html = "";
 
   righe.forEach(riga => {
-    html += "<tr>";
-    headers.forEach((_, i) => {
-      html += `<td>${riga[i] || ""}</td>`;
+
+    html += `<div class="card">`;
+
+    headers.forEach((header, i) => {
+
+      const valore = riga[i];
+
+      if(valore && valore.trim() !== ""){
+
+        html += `
+          <div class="riga">
+            <div class="label">${header}</div>
+            <div class="valore">${valore}</div>
+          </div>
+        `;
+
+      }
+
     });
-    html += "</tr>";
+
+    html += `</div>`;
+
   });
 
-  html += "</tbody></table>";
   return html;
+
 }
 
 async function carica(){
+
   const oggi = getOggi();
 
   document.getElementById("info").innerHTML =
-    "Sto cercando nella colonna E: <strong>" + oggi.join(" / ") + "</strong>";
+    "Filtro automatico sulla colonna E. Oggi sto cercando: <strong>" +
+    oggi.join(" / ") +
+    "</strong>";
 
   try{
-    const res = await fetch(CSV_URL + "&cachebuster=" + new Date().getTime());;
+
+    const res = await fetch(
+      CSV_URL + "&cachebuster=" + new Date().getTime()
+    );
+
     const text = await res.text();
+
     const dati = parseCSV(text);
 
     const headers = dati[0];
     const righe = dati.slice(1);
 
     const filtrate = righe.filter(riga => {
+
       const cella = pulisciTesto(riga[COLONNA_CONTROLLO]);
-      return oggi.some(valore => cella.includes(valore));
+
+      return oggi.some(valore =>
+        cella.includes(valore)
+      );
+
     });
 
     if(filtrate.length === 0){
+
       document.getElementById("contenuto").innerHTML =
-        `<div class="msg">Nessuna riga trovata per oggi.</div>`;
+        `<div class="msg">
+          Nessuna attività trovata per oggi.
+        </div>`;
+
     } else {
+
       document.getElementById("contenuto").innerHTML =
-        creaTabella(headers, filtrate);
+        creaCards(headers, filtrate);
+
     }
 
   } catch(e){
+
     document.getElementById("contenuto").innerHTML =
-      `<div class="msg">Errore nel caricamento del foglio.</div>`;
+      `<div class="msg">
+        Errore nel caricamento del foglio Google.
+      </div>`;
+
+    console.error(e);
+
   }
+
 }
 
 carica();
+
 </script>
 
 </body>
